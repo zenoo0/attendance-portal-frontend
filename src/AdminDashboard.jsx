@@ -1,10 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from './supabaseClient';
 import * as XLSX from 'xlsx';
-import { QRCodeSVG } from 'qrcode.react';
 import { getCourseBadge } from './courseBadge';
-
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'https://cegaproject-production.up.railway.app';
+import QrDisplay from './QrDisplay';
 
 export default function AdminDashboard({ onLogout }) {
   const [activeTab, setActiveTab] = useState('attendance');
@@ -13,11 +11,6 @@ export default function AdminDashboard({ onLogout }) {
   const [courses, setCourses] = useState([]);
   const [selectedCourse, setSelectedCourse] = useState('ALL');
   const [loading, setLoading] = useState(true);
-
-  // Daily QR state
-  const [qrData, setQrData] = useState(null); // { token, valid_date }
-  const [qrLoading, setQrLoading] = useState(false);
-  const [qrError, setQrError] = useState('');
 
   // Registration Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -47,41 +40,6 @@ export default function AdminDashboard({ onLogout }) {
       supabase.removeChannel(attendanceSub);
     };
   }, []);
-
-  // Aaj ka QR token laao jab "Today's QR" tab khule, aur har 60s me
-  // re-check karein taake raat 12 baje (naya din) projector par bina
-  // manual refresh ke naya QR khud dikh jaye.
-  useEffect(() => {
-    if (activeTab !== 'qr') return;
-
-    let cancelled = false;
-
-    const fetchQr = async () => {
-      setQrError('');
-      try {
-        const response = await fetch(`${BACKEND_URL}/api/v1/qr/today`);
-        if (!response.ok) {
-          const errData = await response.json().catch(() => ({}));
-          throw new Error(errData.detail || 'QR code load nahi ho saka.');
-        }
-        const data = await response.json();
-        if (!cancelled) setQrData(data);
-      } catch (err) {
-        if (!cancelled) setQrError(err.message || 'QR code load nahi ho saka.');
-      } finally {
-        if (!cancelled) setQrLoading(false);
-      }
-    };
-
-    setQrLoading(true);
-    fetchQr();
-    const interval = setInterval(fetchQr, 60000);
-
-    return () => {
-      cancelled = true;
-      clearInterval(interval);
-    };
-  }, [activeTab]);
 
   const fetchData = async () => {
     setLoading(true);
@@ -267,38 +225,13 @@ export default function AdminDashboard({ onLogout }) {
         </header>
 
         {activeTab === 'qr' ? (
-          /* Daily QR Panel */
-          <div className="card-dark qr-panel">
-            {qrLoading ? (
-              <div className="state-msg">
-                <div className="spinner" />
-                QR code generate ho raha hai...
-              </div>
-            ) : qrError ? (
-              <div className="alert alert-error" style={{ maxWidth: 360 }}>{qrError}</div>
-            ) : qrData ? (
-              <>
-                <div className="qr-frame">
-                  <span className="qr-corner-l" />
-                  <span className="qr-corner-r" />
-                  <QRCodeSVG
-                    value={`${window.location.origin}/?token=${qrData.token}`}
-                    size={260}
-                    bgColor="#ffffff"
-                    fgColor="#0B0F14"
-                    level="M"
-                  />
-                </div>
-                <p className="label-mono qr-meta">Valid for</p>
-                <p className="qr-date">{qrData.valid_date} · until midnight (PKT)</p>
-                <p className="text-body" style={{ color: '#9CA3AF', marginTop: 'var(--space-4)', maxWidth: 360 }}>
-                  Ye QR code screen/projector par display karein — students apne
-                  phone se scan karke seedha attendance form par pahunch jayenge.
-                  Raat 12 baje ye khud-ba-khud expire ho kar naya QR ban jayega.
-                </p>
-              </>
-            ) : null}
-          </div>
+          <>
+            <QrDisplay />
+            <p className="text-muted" style={{ marginTop: 'var(--space-4)', fontSize: 13 }}>
+              💡 Reception/projector ke liye standalone full-screen link (admin login ke bina):{' '}
+              <code style={{ fontFamily: 'var(--font-mono)' }}>{window.location.origin}/?display=qr</code>
+            </p>
+          </>
         ) : (
           <>
             {/* Filter Bar */}

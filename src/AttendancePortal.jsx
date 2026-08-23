@@ -3,7 +3,7 @@ import Webcam from 'react-webcam';
 import { supabase } from './supabaseClient';
 import { getCourseBadge } from './courseBadge';
 
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'https://cegaproject-production.up.railway.app';
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'https://attendance-portal-backend-production.up.railway.app';
 
 export default function AttendancePortal({ onOpenAdmin, qrToken }) {
   const webcamRef = useRef(null);
