@@ -15,7 +15,7 @@ export default function QrDisplayPage() {
       </header>
 
       <main className="page-center">
-        <div style={{ width: '100%', maxWidth: 480 }}>
+        <div className="card-dark qr-panel" style={{ width: '100%', maxWidth: 480 }}>
           <QrDisplay />
         </div>
       </main>

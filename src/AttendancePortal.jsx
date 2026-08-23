@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import Webcam from 'react-webcam';
 import { supabase } from './supabaseClient';
 import { getCourseBadge } from './courseBadge';
+import QrDisplay from './QrDisplay';
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'https://attendance-portal-backend-production.up.railway.app';
 
@@ -145,14 +146,10 @@ export default function AttendancePortal({ onOpenAdmin, qrToken }) {
 
           {!qrToken ? (
             <div className="qr-blocked-state">
-              <div className="qr-blocked-icon">📷</div>
-              <p className="h2" style={{ fontSize: '18px', marginBottom: 'var(--space-2)' }}>
+              <p className="h2" style={{ fontSize: '18px', marginBottom: 'var(--space-4)' }}>
                 Scan Today's QR Code
               </p>
-              <p className="text-body" style={{ color: '#9CA3AF' }}>
-                Attendance mark karne ke liye pehle admin desk/screen par lagaya
-                gaya aaj ka QR code apne phone se scan karein.
-              </p>
+              <QrDisplay size={220} hint={false} />
             </div>
           ) : (
           <form onSubmit={handleSubmit} noValidate>

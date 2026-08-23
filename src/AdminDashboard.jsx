@@ -226,7 +226,9 @@ export default function AdminDashboard({ onLogout }) {
 
         {activeTab === 'qr' ? (
           <>
-            <QrDisplay />
+            <div className="card-dark qr-panel">
+              <QrDisplay />
+            </div>
             <p className="text-muted" style={{ marginTop: 'var(--space-4)', fontSize: 13 }}>
               💡 Reception/projector ke liye standalone full-screen link (admin login ke bina):{' '}
               <code style={{ fontFamily: 'var(--font-mono)' }}>{window.location.origin}/?display=qr</code>

@@ -3,11 +3,14 @@ import { QRCodeSVG } from 'qrcode.react';
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'https://attendance-portal-backend-production.up.railway.app';
 
-// Shared "Today's QR" panel — Admin Dashboard ke QR tab aur standalone
-// public /?display=qr page, dono isi ek component ko reuse karte hain.
-// Sirf public GET /api/v1/qr/today call karta hai — koi admin-only data
-// (attendance records, students list) yahan touch nahi hota.
-export default function QrDisplay() {
+// Shared "Today's QR" content — Admin Dashboard ke QR tab, standalone public
+// /?display=qr page, aur home page (token missing) ka blocked-state, teeno
+// isi ek component ko reuse karte hain. Sirf public GET /api/v1/qr/today
+// call karta hai — koi admin-only data (attendance records, students list)
+// yahan touch nahi hota. Outer container caller khud provide karta hai
+// (context ke hisaab se card/padding alag ho sakta hai), is liye ye
+// component sirf apna content return karta hai, wrapper card nahi.
+export default function QrDisplay({ size = 260, hint = true }) {
   const [qrData, setQrData] = useState(null);
   const [qrLoading, setQrLoading] = useState(true);
   const [qrError, setQrError] = useState('');
@@ -44,37 +47,43 @@ export default function QrDisplay() {
     };
   }, []);
 
+  if (qrLoading) {
+    return (
+      <div className="state-msg">
+        <div className="spinner" />
+        QR code generate ho raha hai...
+      </div>
+    );
+  }
+
+  if (qrError) {
+    return <div className="alert alert-error" style={{ maxWidth: 360 }}>{qrError}</div>;
+  }
+
+  if (!qrData) return null;
+
   return (
-    <div className="card-dark qr-panel">
-      {qrLoading ? (
-        <div className="state-msg">
-          <div className="spinner" />
-          QR code generate ho raha hai...
-        </div>
-      ) : qrError ? (
-        <div className="alert alert-error" style={{ maxWidth: 360 }}>{qrError}</div>
-      ) : qrData ? (
-        <>
-          <div className="qr-frame">
-            <span className="qr-corner-l" />
-            <span className="qr-corner-r" />
-            <QRCodeSVG
-              value={`${window.location.origin}/?token=${qrData.token}`}
-              size={260}
-              bgColor="#ffffff"
-              fgColor="#0B0F14"
-              level="M"
-            />
-          </div>
-          <p className="label-mono qr-meta">Valid for</p>
-          <p className="qr-date">{qrData.valid_date} · until midnight (PKT)</p>
-          <p className="text-body" style={{ color: '#9CA3AF', marginTop: 'var(--space-4)', maxWidth: 360 }}>
-            Ye QR code screen/projector par display karein — students apne
-            phone se scan karke seedha attendance form par pahunch jayenge.
-            Raat 12 baje ye khud-ba-khud expire ho kar naya QR ban jayega.
-          </p>
-        </>
-      ) : null}
-    </div>
+    <>
+      <div className="qr-frame">
+        <span className="qr-corner-l" />
+        <span className="qr-corner-r" />
+        <QRCodeSVG
+          value={`${window.location.origin}/?token=${qrData.token}`}
+          size={size}
+          bgColor="#ffffff"
+          fgColor="#0B0F14"
+          level="M"
+        />
+      </div>
+      <p className="label-mono qr-meta">Valid for</p>
+      <p className="qr-date">{qrData.valid_date} · until midnight (PKT)</p>
+      {hint && (
+        <p className="text-body" style={{ color: '#9CA3AF', marginTop: 'var(--space-4)', maxWidth: 360 }}>
+          Ye QR code screen/projector par display karein — students apne
+          phone se scan karke seedha attendance form par pahunch jayenge.
+          Raat 12 baje ye khud-ba-khud expire ho kar naya QR ban jayega.
+        </p>
+      )}
+    </>
   );
 }
