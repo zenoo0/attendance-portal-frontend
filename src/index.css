@@ -500,6 +500,8 @@ a { color: inherit; }
   box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.25), 0 0 40px rgba(37, 99, 235, 0.25);
   margin-bottom: var(--space-6);
 }
+.qr-frame svg { max-width: 100%; height: auto; display: block; }
+
 .qr-frame::before,
 .qr-frame::after,
 .qr-frame .qr-corner-l,
@@ -599,6 +601,7 @@ a { color: inherit; }
   flex-wrap: wrap;
 }
 .count-pill { margin-left: auto; }
+.search-input { max-width: 240px; flex: 1 1 200px; }
 
 .table-card { overflow: hidden; }
 .table-wrap { overflow-x: auto; }
@@ -666,10 +669,23 @@ a { color: inherit; }
     padding: var(--space-3) var(--page-margin);
     border-right: none;
     border-bottom: 1px solid var(--color-border-light);
+    flex-wrap: wrap;
+    row-gap: var(--space-2);
   }
   .sidebar-brand { margin-bottom: 0; margin-right: var(--space-4); }
-  .sidebar-nav { flex-direction: row; flex: none; }
-  .sidebar-nav-item { border-left: none; border-bottom: 3px solid transparent; }
+  .sidebar-nav {
+    flex-direction: row;
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .sidebar-nav-item {
+    border-left: none;
+    border-bottom: 3px solid transparent;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
   .sidebar-nav-item.active { border-left-color: transparent; border-bottom-color: var(--color-primary); }
   .main-content { padding: var(--space-6) var(--page-margin); }
 }
@@ -677,4 +693,28 @@ a { color: inherit; }
 @media (max-width: 640px) {
   .card-dark { padding: var(--space-4); }
   .h1 { font-size: 26px; }
+
+  /* Admin Dashboard — sidebar ek dusri row par wrap ho jaye, logout
+     button apni jagah alag se full-width */
+  .sidebar { padding: var(--space-3) var(--space-4); }
+  .sidebar-brand { flex: 1 1 auto; }
+  .sidebar > .btn { width: 100%; order: 3; margin-top: var(--space-2); }
+  .sidebar-nav { order: 2; flex-basis: 100%; margin-top: var(--space-2); }
+
+  .topbar { flex-direction: column; align-items: stretch; }
+  .topbar .btn { width: 100%; }
+
+  /* Filter bar — narrow phone par sab kuch stack + full-width */
+  .filter-card { flex-direction: column; align-items: stretch; gap: var(--space-3); }
+  .filter-card .select-light,
+  .filter-card .search-input {
+    width: 100%;
+    max-width: none;
+    min-width: 0;
+  }
+  .count-pill { margin-left: 0; align-self: flex-start; }
+
+  .data-table th, .data-table td { padding: 10px 12px; font-size: 13px; }
+
+  .qr-panel { padding: var(--space-8) var(--space-4); }
 }

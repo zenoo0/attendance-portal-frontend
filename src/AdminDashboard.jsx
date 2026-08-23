@@ -283,8 +283,7 @@ export default function AdminDashboard({ onLogout }) {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="🔍 Search by name or ID..."
-                className="input-light"
-                style={{ maxWidth: 240 }}
+                className="input-light search-input"
               />
               <span className="pill pill-blue-tint count-pill">
                 {activeTab === 'attendance' ? `${filteredAttendance.length} Records Found` : `${filteredStudents.length} Students Registered`}
