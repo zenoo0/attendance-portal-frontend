@@ -265,6 +265,11 @@ a { color: inherit; }
 .form-card {
   width: 100%;
   max-width: 420px;
+  /* .page-center is a flex row — flex items default to min-width:auto,
+     which refuses to shrink below content's intrinsic size (the QR
+     image here). That silently breaks width:100%/max-width and
+     overflows the card off one edge on narrow viewports. */
+  min-width: 0;
   position: relative;
 }
 
@@ -498,13 +503,19 @@ a { color: inherit; }
 }
 
 .qr-frame {
+  /* Block-level div defaults to width:auto = fill available width, which
+     is usually wider than the QR itself -- without shrink-to-fit +
+     centering the QR sits flush left with empty white space piling up
+     on the right. width:fit-content + margin:auto fixes this regardless
+     of which ancestor (blocked-state/panel/standalone page) wraps it. */
+  width: fit-content;
+  margin: 0 auto var(--space-6);
   position: relative;
   padding: var(--space-6);
   background: #ffffff;
   border-radius: var(--radius-card);
   border: 1px solid var(--color-border-dark);
   box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.25), 0 0 40px rgba(37, 99, 235, 0.25);
-  margin-bottom: var(--space-6);
 }
 .qr-frame svg { max-width: 100%; height: auto; display: block; }
 
