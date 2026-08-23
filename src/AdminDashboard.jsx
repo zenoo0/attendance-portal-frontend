@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from './supabaseClient';
-import * as XLSX from 'xlsx';
 import { getCourseBadge } from './courseBadge';
 import QrDisplay from './QrDisplay';
 import { compareRollNumbers } from './rollNumberSort';
+
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'https://attendance-portal-backend-production.up.railway.app';
 
 export default function AdminDashboard({ onLogout }) {
   const [activeTab, setActiveTab] = useState('attendance');
@@ -13,6 +14,7 @@ export default function AdminDashboard({ onLogout }) {
   const [selectedCourse, setSelectedCourse] = useState('ALL');
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
+  const [exporting, setExporting] = useState(false);
 
   // Registration Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -157,22 +159,33 @@ export default function AdminDashboard({ onLogout }) {
       (item.roll_number || '').toLowerCase().includes(search)
     );
 
-  // Export Function
-  const exportToExcel = () => {
-    const exportData = filteredAttendance.map((record, index) => ({
-      'S.No': index + 1,
-      'Student ID': record.student_id,
-      'Student Name': record.student_name,
-      'Course Code': record.courses?.code || 'N/A',
-      'Course Name': record.courses?.name || 'N/A',
-      'Date & Time': new Date(record.captured_at).toLocaleString(),
-      'Verification Image URL': record.image_url,
-    }));
+  // Export Function — ab poora "Batch Attendance Register" format backend
+  // se generate hota hai (har course ki sheet, P/A matrix, Hours/%).
+  // Dashboard ka course-filter isko affect nahi karta — ye hamesha
+  // complete official register export karta hai.
+  const exportToExcel = async () => {
+    setExporting(true);
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/v1/export/attendance-report`);
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.detail || 'Export fail ho gaya.');
+      }
 
-    const worksheet = XLSX.utils.json_to_sheet(exportData);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Attendance Report');
-    XLSX.writeFile(workbook, `Attendance_Report_${new Date().toISOString().slice(0, 10)}.xlsx`);
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `Batch_Attendance_Register_${new Date().toISOString().slice(0, 10)}.xlsx`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      alert('Export fail ho gaya: ' + err.message);
+    } finally {
+      setExporting(false);
+    }
   };
 
   return (
@@ -226,8 +239,8 @@ export default function AdminDashboard({ onLogout }) {
 
           <div>
             {activeTab === 'attendance' && (
-              <button onClick={exportToExcel} className="btn btn-outline-blue">
-                📥 Export to Excel
+              <button onClick={exportToExcel} disabled={exporting} className="btn btn-outline-blue">
+                {exporting ? '⏳ Generating...' : '📥 Export to Excel'}
               </button>
             )}
             {activeTab === 'students' && (
