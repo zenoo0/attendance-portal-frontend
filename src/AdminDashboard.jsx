@@ -10,15 +10,15 @@ export default function AdminDashboard({ onLogout }) {
   const [students, setStudents] = useState([]);
   const [courses, setCourses] = useState([]);
   const [selectedCourse, setSelectedCourse] = useState('ALL');
+  const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
 
   // Registration Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newStudent, setNewStudent] = useState({
-    student_id: '',
-    full_name: '',
-    course_id: '',
-    email: ''
+    roll_number: '',
+    name: '',
+    course_id: ''
   });
 
   useEffect(() => {
@@ -70,18 +70,17 @@ export default function AdminDashboard({ onLogout }) {
       if (attError) console.warn('Attendance fetch warning:', attError);
       setAttendance(attendanceData || []);
 
-      // 3. Fetch Registered Students
+      // 3. Fetch Registered Students (columns: roll_number, name — actual DB schema)
       const { data: studentsData, error: stuError } = await supabase
         .from('students')
         .select(`
           id,
-          student_id,
-          full_name,
-          email,
+          roll_number,
+          name,
           course_id,
           courses ( code, name )
         `)
-        .order('student_id', { ascending: true });
+        .order('roll_number', { ascending: true });
 
       if (stuError) console.warn('Students fetch warning:', stuError);
       setStudents(studentsData || []);
@@ -101,17 +100,15 @@ export default function AdminDashboard({ onLogout }) {
         .from('students')
         .insert([
           {
-            student_id: newStudent.student_id,
-            full_name: newStudent.full_name,
+            roll_number: newStudent.roll_number.trim(),
+            name: newStudent.name.trim(),
             course_id: newStudent.course_id || (courses[0]?.id || null),
-            email: newStudent.email,
           }
         ])
         .select(`
           id,
-          student_id,
-          full_name,
-          email,
+          roll_number,
+          name,
           course_id,
           courses ( code, name )
         `);
@@ -123,10 +120,9 @@ export default function AdminDashboard({ onLogout }) {
       }
       setIsModalOpen(false);
       setNewStudent({
-        student_id: '',
-        full_name: '',
-        course_id: courses[0]?.id || '',
-        email: ''
+        roll_number: '',
+        name: '',
+        course_id: courses[0]?.id || ''
       });
       fetchData();
     } catch (err) {
@@ -134,14 +130,24 @@ export default function AdminDashboard({ onLogout }) {
     }
   };
 
-  // Filter calculations
-  const filteredAttendance = selectedCourse === 'ALL'
-    ? attendance
-    : attendance.filter(item => item.course_id === selectedCourse);
+  // Filter calculations (course + search, dono ek sath apply hote hain)
+  const search = searchQuery.trim().toLowerCase();
 
-  const filteredStudents = selectedCourse === 'ALL'
-    ? students
-    : students.filter(item => item.course_id === selectedCourse);
+  const filteredAttendance = attendance
+    .filter(item => selectedCourse === 'ALL' || item.course_id === selectedCourse)
+    .filter(item =>
+      !search ||
+      (item.student_name || '').toLowerCase().includes(search) ||
+      (item.student_id || '').toLowerCase().includes(search)
+    );
+
+  const filteredStudents = students
+    .filter(item => selectedCourse === 'ALL' || item.course_id === selectedCourse)
+    .filter(item =>
+      !search ||
+      (item.name || '').toLowerCase().includes(search) ||
+      (item.roll_number || '').toLowerCase().includes(search)
+    );
 
   // Export Function
   const exportToExcel = () => {
@@ -251,104 +257,110 @@ export default function AdminDashboard({ onLogout }) {
                   </option>
                 ))}
               </select>
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="🔍 Search by name or ID..."
+                className="input-light"
+                style={{ maxWidth: 240 }}
+              />
               <span className="pill pill-blue-tint count-pill">
                 {activeTab === 'attendance' ? `${filteredAttendance.length} Records Found` : `${filteredStudents.length} Students Registered`}
               </span>
             </div>
 
-        {/* Table Card */}
-        <div className="card-light table-card">
-          {loading ? (
-            <div className="state-msg">
-              <div className="spinner" />
-              Loading data from server...
-            </div>
-          ) : activeTab === 'attendance' ? (
-            /* Attendance Log Table */
-            <div className="table-wrap">
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th>Image</th>
-                    <th>Student ID</th>
-                    <th>Name</th>
-                    <th>Course</th>
-                    <th>Timestamp</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredAttendance.length > 0 ? (
-                    filteredAttendance.map((item) => {
-                      const badge = getCourseBadge(item.courses?.name || item.courses?.code || '');
-                      return (
-                        <tr key={item.id}>
-                          <td>
-                            {item.image_url ? (
-                              <img src={item.image_url} alt="Capture" className="avatar-thumb" />
-                            ) : (
-                              <span className="no-img-chip">No Img</span>
-                            )}
-                          </td>
-                          <td className="td-bold">{item.student_id}</td>
-                          <td>{item.student_name}</td>
-                          <td>
-                            <span className="course-pill" style={{ color: badge.text, background: badge.bg }}>
-                              {item.courses?.code || 'N/A'}
-                            </span>
-                          </td>
-                          <td className="mono-muted">
-                            {new Date(item.captured_at).toLocaleString()}
-                          </td>
+            {/* Table Card */}
+            <div className="card-light table-card">
+              {loading ? (
+                <div className="state-msg">
+                  <div className="spinner" />
+                  Loading data from server...
+                </div>
+              ) : activeTab === 'attendance' ? (
+                /* Attendance Log Table */
+                <div className="table-wrap">
+                  <table className="data-table">
+                    <thead>
+                      <tr>
+                        <th>Image</th>
+                        <th>Student ID</th>
+                        <th>Name</th>
+                        <th>Course</th>
+                        <th>Timestamp</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredAttendance.length > 0 ? (
+                        filteredAttendance.map((item) => {
+                          const badge = getCourseBadge(item.courses?.name || item.courses?.code || '');
+                          return (
+                            <tr key={item.id}>
+                              <td>
+                                {item.image_url ? (
+                                  <img src={item.image_url} alt="Capture" className="avatar-thumb" />
+                                ) : (
+                                  <span className="no-img-chip">No Img</span>
+                                )}
+                              </td>
+                              <td className="td-bold">{item.student_id}</td>
+                              <td>{item.student_name}</td>
+                              <td>
+                                <span className="course-pill" style={{ color: badge.text, background: badge.bg }}>
+                                  {item.courses?.code || 'N/A'}
+                                </span>
+                              </td>
+                              <td className="mono-muted">
+                                {new Date(item.captured_at).toLocaleString()}
+                              </td>
+                            </tr>
+                          );
+                        })
+                      ) : (
+                        <tr>
+                          <td colSpan="5" className="state-msg">No attendance logs found for this filter.</td>
                         </tr>
-                      );
-                    })
-                  ) : (
-                    <tr>
-                      <td colSpan="5" className="state-msg">No attendance logs found for this filter.</td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            /* Registered Students Table */
-            <div className="table-wrap">
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th>Student ID</th>
-                    <th>Full Name</th>
-                    <th>Assigned Course</th>
-                    <th>Email Address</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredStudents.length > 0 ? (
-                    filteredStudents.map((stu) => {
-                      const badge = getCourseBadge(stu.courses?.name || stu.courses?.code || '');
-                      return (
-                        <tr key={stu.id || stu.student_id}>
-                          <td className="td-bold">{stu.student_id}</td>
-                          <td>{stu.full_name}</td>
-                          <td>
-                            <span className="course-pill" style={{ color: badge.text, background: badge.bg }}>
-                              {stu.courses?.code || 'N/A'} - {stu.courses?.name || ''}
-                            </span>
-                          </td>
-                          <td className="mono-muted">{stu.email || 'N/A'}</td>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                /* Registered Students Table */
+                <div className="table-wrap">
+                  <table className="data-table">
+                    <thead>
+                      <tr>
+                        <th>Student ID</th>
+                        <th>Full Name</th>
+                        <th>Assigned Course</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredStudents.length > 0 ? (
+                        filteredStudents.map((stu) => {
+                          const badge = getCourseBadge(stu.courses?.name || stu.courses?.code || '');
+                          return (
+                            <tr key={stu.id || stu.roll_number}>
+                              <td className="td-bold">{stu.roll_number}</td>
+                              <td>{stu.name}</td>
+                              <td>
+                                <span className="course-pill" style={{ color: badge.text, background: badge.bg }}>
+                                  {stu.courses?.code || 'N/A'} - {stu.courses?.name || ''}
+                                </span>
+                              </td>
+                            </tr>
+                          );
+                        })
+                      ) : (
+                        <tr>
+                          <td colSpan="3" className="state-msg">No registered students found for this filter.</td>
                         </tr>
-                      );
-                    })
-                  ) : (
-                    <tr>
-                      <td colSpan="4" className="state-msg">No registered students found for this course.</td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
-          )}
-        </div>
           </>
         )}
       </main>
@@ -364,9 +376,9 @@ export default function AdminDashboard({ onLogout }) {
                 <input
                   type="text"
                   required
-                  placeholder="e.g. CEGA-24-01"
-                  value={newStudent.student_id}
-                  onChange={(e) => setNewStudent({ ...newStudent, student_id: e.target.value })}
+                  placeholder="e.g. UNITY-53"
+                  value={newStudent.roll_number}
+                  onChange={(e) => setNewStudent({ ...newStudent, roll_number: e.target.value })}
                   className="input-light"
                 />
               </div>
@@ -377,8 +389,8 @@ export default function AdminDashboard({ onLogout }) {
                   type="text"
                   required
                   placeholder="e.g. Muhammad Ali"
-                  value={newStudent.full_name}
-                  onChange={(e) => setNewStudent({ ...newStudent, full_name: e.target.value })}
+                  value={newStudent.name}
+                  onChange={(e) => setNewStudent({ ...newStudent, name: e.target.value })}
                   className="input-light"
                 />
               </div>
@@ -397,18 +409,6 @@ export default function AdminDashboard({ onLogout }) {
                     </option>
                   ))}
                 </select>
-              </div>
-
-              <div className="field-group">
-                <label className="field-label field-label-light">Email Address</label>
-                <input
-                  type="email"
-                  required
-                  placeholder="student@cega.edu"
-                  value={newStudent.email}
-                  onChange={(e) => setNewStudent({ ...newStudent, email: e.target.value })}
-                  className="input-light"
-                />
               </div>
 
               <div className="modal-actions">

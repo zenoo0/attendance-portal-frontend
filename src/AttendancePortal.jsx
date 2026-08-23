@@ -100,10 +100,20 @@ export default function AttendancePortal({ onOpenAdmin, qrToken }) {
         const serverDetail = typeof errorData.detail === 'string'
           ? errorData.detail
           : JSON.stringify(errorData.detail) || 'Server error occurred.';
-        throw new Error(`Server Error (${response.status}): ${serverDetail}`);
+        // 400-series = expected/validated errors (already friendly Urdu/English
+        // text from backend, e.g. "Ye Student ID registered nahi hai...") —
+        // dikhao as-is. 500-series = genuine server error, technical prefix rakho.
+        throw new Error(response.status < 500 ? serverDetail : `Server Error (${response.status}): ${serverDetail}`);
       }
 
-      setStatus({ type: 'success', message: 'Attendance marked successfully!' });
+      const resultData = await response.json().catch(() => ({}));
+
+      setStatus({
+        type: 'success',
+        message: resultData.warning
+          ? `Attendance marked successfully! ⚠ ${resultData.warning}`
+          : 'Attendance marked successfully!',
+      });
       setStudentId('');
       setStudentName('');
       setSelectedCourse('');
