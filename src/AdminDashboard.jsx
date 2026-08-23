@@ -3,6 +3,7 @@ import { supabase } from './supabaseClient';
 import * as XLSX from 'xlsx';
 import { getCourseBadge } from './courseBadge';
 import QrDisplay from './QrDisplay';
+import { compareRollNumbers } from './rollNumberSort';
 
 export default function AdminDashboard({ onLogout }) {
   const [activeTab, setActiveTab] = useState('attendance');
@@ -79,11 +80,16 @@ export default function AdminDashboard({ onLogout }) {
           name,
           course_id,
           courses ( code, name )
-        `)
-        .order('roll_number', { ascending: true });
+        `);
+        // Note: DB-level .order('roll_number') string-sort karta hai
+        // (UNREAL-10 UNREAL-2 se pehle aa jata) — is liye yahan sort
+        // nahi karte, neeche numeric-aware compareRollNumbers se karte hain.
 
       if (stuError) console.warn('Students fetch warning:', stuError);
-      setStudents(studentsData || []);
+      const sortedStudents = [...(studentsData || [])].sort((a, b) =>
+        compareRollNumbers(a.roll_number, b.roll_number)
+      );
+      setStudents(sortedStudents);
 
     } catch (err) {
       console.error('Error fetching admin data:', err);
@@ -116,7 +122,9 @@ export default function AdminDashboard({ onLogout }) {
       if (error) throw error;
 
       if (data) {
-        setStudents(prev => [...prev, ...data]);
+        setStudents(prev =>
+          [...prev, ...data].sort((a, b) => compareRollNumbers(a.roll_number, b.roll_number))
+        );
       }
       setIsModalOpen(false);
       setNewStudent({
