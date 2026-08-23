@@ -109,6 +109,11 @@ a { color: inherit; }
 /* ---------- Page shells ---------- */
 .page-dark {
   min-height: 100vh;
+  /* Mobile browsers (address bar visible/hiding) miscompute 100vh —
+     dvh matches the actually-visible viewport so content centers
+     correctly instead of appearing shifted. Browsers that don't
+     support dvh just keep the vh value above. */
+  min-height: 100dvh;
   background: var(--color-bg-dark);
   color: #ffffff;
   display: flex;
@@ -117,6 +122,7 @@ a { color: inherit; }
 
 .page-light {
   min-height: 100vh;
+  min-height: 100dvh;
   background: var(--color-bg-light);
   color: var(--color-text-body);
 }

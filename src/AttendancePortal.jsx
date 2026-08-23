@@ -159,7 +159,7 @@ export default function AttendancePortal({ onOpenAdmin, qrToken }) {
               <p className="h2" style={{ fontSize: '18px', marginBottom: 'var(--space-4)' }}>
                 Scan Today's QR Code
               </p>
-              <QrDisplay size={220} hint={false} />
+              <QrDisplay size={260} hint={false} />
             </div>
           ) : (
           <form onSubmit={handleSubmit} noValidate>
