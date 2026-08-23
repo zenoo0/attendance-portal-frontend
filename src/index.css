@@ -474,7 +474,7 @@ a { color: inherit; }
 /* ---------- QR blocked state (student form, no token in URL) ---------- */
 .qr-blocked-state {
   text-align: center;
-  padding: var(--space-8) var(--space-2);
+  padding: var(--space-2) var(--space-2) var(--space-6);
 }
 .qr-blocked-icon {
   font-size: 40px;
@@ -711,6 +711,9 @@ a { color: inherit; }
     width: 100%;
     max-width: none;
     min-width: 0;
+    /* .search-input ka desktop 'flex: 1 1 200px' column-layout me
+       flex-basis ko HEIGHT bana deta hai (200px tall box) — reset karo */
+    flex: 0 0 auto;
   }
   .count-pill { margin-left: 0; align-self: flex-start; }
 
