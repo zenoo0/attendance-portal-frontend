@@ -153,19 +153,12 @@ a { color: inherit; }
   letter-spacing: 0.02em;
 }
 
-.brand-logo-dot {
-  width: 30px;
-  height: 30px;
-  border-radius: 8px;
-  background: var(--color-primary);
-  color: #fff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-family: var(--font-mono);
-  font-weight: 700;
-  font-size: 13px;
+.brand-logo-img {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
   flex-shrink: 0;
+  display: block;
 }
 
 /* ---------- Buttons ---------- */

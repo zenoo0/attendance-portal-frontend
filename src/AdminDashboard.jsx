@@ -3,6 +3,7 @@ import { supabase } from './supabaseClient';
 import { getCourseBadge } from './courseBadge';
 import QrDisplay from './QrDisplay';
 import { compareRollNumbers } from './rollNumberSort';
+import cegaLogo from './assets/cega-logo.png';
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'https://attendance-portal-backend-production.up.railway.app';
 
@@ -193,7 +194,7 @@ export default function AdminDashboard({ onLogout }) {
       {/* Sidebar Navigation */}
       <aside className="sidebar">
         <div className="sidebar-brand">
-          <span className="brand-logo-dot">🏛️</span>
+          <img src={cegaLogo} alt="CEGA" className="brand-logo-img" />
           <h2 className="sidebar-title">CEGA Admin</h2>
         </div>
 

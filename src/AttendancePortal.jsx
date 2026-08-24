@@ -3,6 +3,7 @@ import Webcam from 'react-webcam';
 import { supabase } from './supabaseClient';
 import { getCourseBadge } from './courseBadge';
 import QrDisplay from './QrDisplay';
+import cegaLogo from './assets/cega-logo.png';
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'https://attendance-portal-backend-production.up.railway.app';
 
@@ -133,7 +134,7 @@ export default function AttendancePortal({ onOpenAdmin, qrToken }) {
     <div className="page-dark">
       <header className="navbar-dark">
         <div className="brand">
-          <span className="brand-logo-dot">C</span>
+          <img src={cegaLogo} alt="CEGA" className="brand-logo-img" />
           <span>CEGA</span>
         </div>
         <button type="button" className="btn btn-outline-dark btn-sm" onClick={onOpenAdmin}>

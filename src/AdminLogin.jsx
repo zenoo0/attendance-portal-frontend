@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import cegaLogo from './assets/cega-logo.png';
 
 export default function AdminLogin({ onBackToStudent, onLoginSuccess }) {
   const [email, setEmail] = useState('');
@@ -25,7 +26,7 @@ export default function AdminLogin({ onBackToStudent, onLoginSuccess }) {
     <div className="page-dark">
       <header className="navbar-dark">
         <div className="brand">
-          <span className="brand-logo-dot">C</span>
+          <img src={cegaLogo} alt="CEGA" className="brand-logo-img" />
           <span>CEGA Student Portal</span>
         </div>
       </header>

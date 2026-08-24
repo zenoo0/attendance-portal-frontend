@@ -1,5 +1,6 @@
 import React from 'react';
 import QrDisplay from './QrDisplay';
+import cegaLogo from './assets/cega-logo.png';
 
 // Public, admin-login ke bina accessible full-screen QR display —
 // reception desk/projector/tablet par permanently khula rakhne ke liye.
@@ -9,7 +10,7 @@ export default function QrDisplayPage() {
     <div className="page-dark">
       <header className="navbar-dark">
         <div className="brand">
-          <span className="brand-logo-dot">C</span>
+          <img src={cegaLogo} alt="CEGA" className="brand-logo-img" />
           <span>CEGA — Attendance Check-In</span>
         </div>
       </header>
