@@ -75,8 +75,6 @@ export default function QrDisplay({ size = 260, hint = true }) {
           level="M"
         />
       </div>
-      <p className="label-mono qr-meta">Valid for</p>
-      <p className="qr-date">{qrData.valid_date} · until midnight (PKT)</p>
       {hint && (
         <p className="text-body" style={{ color: '#9CA3AF', marginTop: 'var(--space-4)', maxWidth: 360 }}>
           Ye QR code screen/projector par display karein — students apne
