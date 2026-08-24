@@ -56,6 +56,7 @@ export default function AdminDashboard({ onLogout }) {
           setNewStudent(prev => ({ ...prev, course_id: coursesData[0].id }));
         }
       }
+      const coursesList = coursesData || [];
 
       // 2. Fetch Attendance Records
       const { data: attendanceData, error: attError } = await supabase
@@ -74,25 +75,37 @@ export default function AdminDashboard({ onLogout }) {
       if (attError) console.warn('Attendance fetch warning:', attError);
       setAttendance(attendanceData || []);
 
-      // 3. Fetch Registered Students (columns: roll_number, name — actual DB schema)
-      const { data: studentsData, error: stuError } = await supabase
-        .from('students')
-        .select(`
-          id,
-          roll_number,
-          name,
-          course_id,
-          courses ( code, name )
-        `);
-        // Note: DB-level .order('roll_number') string-sort karta hai
-        // (UNREAL-10 UNREAL-2 se pehle aa jata) — is liye yahan sort
-        // nahi karte, neeche numeric-aware compareRollNumbers se karte hain.
-
-      if (stuError) console.warn('Students fetch warning:', stuError);
-      const sortedStudents = [...(studentsData || [])].sort((a, b) =>
-        compareRollNumbers(a.roll_number, b.roll_number)
+      // 3. Fetch Registered Students — har course ki apni alag table hai
+      // (students_unity, students_unreal, ...), courses.students_table
+      // batata hai kaunsi. Sabko fetch karke ek list me merge karte hain,
+      // course_id/courses ko locally attach kar dete hain (JSX ka baaki
+      // hissa ek hi flat list expect karta hai).
+      const coursesWithTable = coursesList.filter(c => c.students_table);
+      const perCourseResults = await Promise.all(
+        coursesWithTable.map(c =>
+          supabase.from(c.students_table).select('id, roll_number, name')
+        )
       );
-      setStudents(sortedStudents);
+
+      let allStudents = [];
+      perCourseResults.forEach((res, i) => {
+        const course = coursesWithTable[i];
+        if (res.error) {
+          console.warn(`Students fetch warning (${course.students_table}):`, res.error);
+          return;
+        }
+        const tagged = (res.data || []).map(s => ({
+          ...s,
+          course_id: course.id,
+          courses: { code: course.code, name: course.name },
+        }));
+        allStudents = allStudents.concat(tagged);
+      });
+
+      // DB-level string-sort galat order deta (UNREAL-10 UNREAL-2 se
+      // pehle) — numeric-aware compareRollNumbers se client-side sort.
+      allStudents.sort((a, b) => compareRollNumbers(a.roll_number, b.roll_number));
+      setStudents(allStudents);
 
     } catch (err) {
       console.error('Error fetching admin data:', err);
@@ -101,32 +114,37 @@ export default function AdminDashboard({ onLogout }) {
     }
   };
 
-  // Manual Student Registration Handler
+  // Manual Student Registration Handler — jo course select hua uski
+  // students_table me insert karte hain (har course ki apni alag table).
   const handleRegisterStudent = async (e) => {
     e.preventDefault();
     try {
+      const courseId = newStudent.course_id || (courses[0]?.id || null);
+      const course = courses.find(c => c.id === courseId);
+      if (!course?.students_table) {
+        throw new Error('Is course ke liye students table configure nahi hai.');
+      }
+
       const { data, error } = await supabase
-        .from('students')
+        .from(course.students_table)
         .insert([
           {
             roll_number: newStudent.roll_number.trim(),
             name: newStudent.name.trim(),
-            course_id: newStudent.course_id || (courses[0]?.id || null),
           }
         ])
-        .select(`
-          id,
-          roll_number,
-          name,
-          course_id,
-          courses ( code, name )
-        `);
+        .select('id, roll_number, name');
 
       if (error) throw error;
 
       if (data) {
+        const tagged = data.map(s => ({
+          ...s,
+          course_id: course.id,
+          courses: { code: course.code, name: course.name },
+        }));
         setStudents(prev =>
-          [...prev, ...data].sort((a, b) => compareRollNumbers(a.roll_number, b.roll_number))
+          [...prev, ...tagged].sort((a, b) => compareRollNumbers(a.roll_number, b.roll_number))
         );
       }
       setIsModalOpen(false);
@@ -135,7 +153,6 @@ export default function AdminDashboard({ onLogout }) {
         name: '',
         course_id: courses[0]?.id || ''
       });
-      fetchData();
     } catch (err) {
       alert('Failed to register student: ' + err.message);
     }
