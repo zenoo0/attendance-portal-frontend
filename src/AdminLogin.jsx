@@ -27,7 +27,7 @@ export default function AdminLogin({ onBackToStudent, onLoginSuccess }) {
       <header className="navbar-dark">
         <div className="brand">
           <img src={cegaLogo} alt="CEGA" className="brand-logo-img" />
-          <span>CEGA Student Portal</span>
+          <span>CEGA</span>
         </div>
       </header>
 
