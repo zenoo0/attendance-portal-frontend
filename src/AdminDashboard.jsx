@@ -16,6 +16,7 @@ export default function AdminDashboard({ onLogout }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
+  const [markingRollNumber, setMarkingRollNumber] = useState(null);
 
   // Registration Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -206,6 +207,30 @@ export default function AdminDashboard({ onLogout }) {
     }
   };
 
+  // Manual Attendance — admin seedha "Registered Students" list se ek
+  // click me student ko present mark kar sakta hai (QR/photo nahi
+  // chahiye). Realtime subscription (upar) khud Attendance Log tab
+  // refresh kar degi jab naya record insert hoga.
+  const handleMarkAttendance = async (stu) => {
+    setMarkingRollNumber(stu.roll_number);
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/v1/attendance/manual`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ course_id: stu.course_id, roll_number: stu.roll_number }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(data.detail || 'Attendance mark nahi ho saki.');
+      }
+      alert(data.message);
+    } catch (err) {
+      alert('Failed: ' + err.message);
+    } finally {
+      setMarkingRollNumber(null);
+    }
+  };
+
   return (
     <div className="admin-shell">
       {/* Sidebar Navigation */}
@@ -371,27 +396,40 @@ export default function AdminDashboard({ onLogout }) {
                         <th>Student ID</th>
                         <th>Full Name</th>
                         <th>Assigned Course</th>
+                        <th>Attendance</th>
                       </tr>
                     </thead>
                     <tbody>
                       {filteredStudents.length > 0 ? (
                         filteredStudents.map((stu) => {
                           const badge = getCourseBadge(stu.courses?.name || stu.courses?.code || '');
+                          const isMarking = markingRollNumber === stu.roll_number;
                           return (
                             <tr key={stu.id || stu.roll_number}>
                               <td className="td-bold">{stu.roll_number}</td>
-                              <td>{stu.name}</td>
+                              <td>{stu.name || <span className="text-muted">— (pehli scan ka wait)</span>}</td>
                               <td>
                                 <span className="course-pill" style={{ color: badge.text, background: badge.bg }}>
                                   {stu.courses?.code || 'N/A'} - {stu.courses?.name || ''}
                                 </span>
+                              </td>
+                              <td>
+                                <button
+                                  onClick={() => handleMarkAttendance(stu)}
+                                  disabled={isMarking || !stu.name}
+                                  title={!stu.name ? 'Naam abhi set nahi hai — pehle student ko khud scan karna hoga' : ''}
+                                  className="btn btn-outline-blue"
+                                  style={{ fontSize: 12, padding: '6px 12px' }}
+                                >
+                                  {isMarking ? '...' : '✓ Mark Present'}
+                                </button>
                               </td>
                             </tr>
                           );
                         })
                       ) : (
                         <tr>
-                          <td colSpan="3" className="state-msg">No registered students found for this filter.</td>
+                          <td colSpan="4" className="state-msg">No registered students found for this filter.</td>
                         </tr>
                       )}
                     </tbody>
