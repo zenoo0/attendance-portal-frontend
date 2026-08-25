@@ -1,5 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
-import Webcam from 'react-webcam';
+import React, { useState, useEffect } from 'react';
 import { supabase } from './supabaseClient';
 import { getCourseBadge } from './courseBadge';
 import QrDisplay from './QrDisplay';
@@ -8,8 +7,6 @@ import cegaLogo from './assets/cega-logo.png';
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'https://attendance-portal-backend-production.up.railway.app';
 
 export default function AttendancePortal({ onOpenAdmin, qrToken }) {
-  const webcamRef = useRef(null);
-
   const [studentId, setStudentId] = useState('');
   const [studentName, setStudentName] = useState('');
   const [selectedCourse, setSelectedCourse] = useState('');
@@ -36,28 +33,16 @@ export default function AttendancePortal({ onOpenAdmin, qrToken }) {
     fetchCourses();
   }, []);
 
-  const dataURLtoBlob = (dataurl) => {
-    const arr = dataurl.split(',');
-    const mime = arr[0].match(/:(.*?);/)[1];
-    const bstr = atob(arr[1]);
-    let n = bstr.length;
-    const u8arr = new Uint8Array(n);
-    while (n--) u8arr[n] = bstr.charCodeAt(n);
-    return new Blob([u8arr], { type: mime });
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    const imageSrc = webcamRef.current?.getScreenshot();
 
     if (!qrToken) {
       setStatus({ type: 'error', message: "Aaj ka QR code scan karein attendance mark karne ke liye." });
       return;
     }
 
-    if (!selectedCourse || !studentId || !studentName || !imageSrc) {
-      setStatus({ type: 'error', message: 'Please fill all fields and enable webcam.' });
+    if (!selectedCourse || !studentId || !studentName) {
+      setStatus({ type: 'error', message: 'Please fill all fields.' });
       return;
     }
 
@@ -65,32 +50,6 @@ export default function AttendancePortal({ onOpenAdmin, qrToken }) {
     setStatus({ type: '', message: '' });
 
     try {
-      const cleanStudentId = studentId.trim().replace(/[^a-zA-Z0-9_-]/g, '_');
-      const imageBlob = dataURLtoBlob(imageSrc);
-      const fileName = `${selectedCourse}/${cleanStudentId}_${Date.now()}.jpg`;
-
-      // 1. Storage Upload — storage full ho ya upload kisi bhi wajah se
-      // fail ho jaye, attendance abhi bhi mark honi chahiye (bina image
-      // ke), block nahi honi chahiye.
-      let imageUrl = null;
-      try {
-        const { error: uploadError } = await supabase.storage
-          .from('attendance-captures')
-          .upload(fileName, imageBlob, { contentType: 'image/jpeg' });
-
-        if (uploadError) throw uploadError;
-
-        const { data: publicUrlData } = supabase.storage
-          .from('attendance-captures')
-          .getPublicUrl(fileName);
-
-        imageUrl = publicUrlData.publicUrl;
-      } catch (uploadErr) {
-        console.warn('Image upload fail ho gaya, image ke bina attendance continue:', uploadErr);
-        imageUrl = null;
-      }
-
-      // 2. Backend Call
       const response = await fetch(`${BACKEND_URL}/api/v1/attendance`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -98,7 +57,6 @@ export default function AttendancePortal({ onOpenAdmin, qrToken }) {
           student_id: studentId.trim(),
           student_name: studentName.trim(),
           course_id: selectedCourse,
-          image_url: imageUrl,
           token: qrToken,
         }),
       });
@@ -116,14 +74,10 @@ export default function AttendancePortal({ onOpenAdmin, qrToken }) {
 
       const resultData = await response.json().catch(() => ({}));
 
-      const notes = [];
-      if (resultData.warning) notes.push(resultData.warning);
-      if (!imageUrl) notes.push('Note: photo save nahi ho saki (storage issue), lekin attendance mark ho gayi.');
-
       setStatus({
         type: 'success',
-        message: notes.length
-          ? `Attendance marked successfully! ⚠ ${notes.join(' ')}`
+        message: resultData.warning
+          ? `Attendance marked successfully! ⚠ ${resultData.warning}`
           : 'Attendance marked successfully!',
       });
       setStudentId('');
@@ -230,25 +184,6 @@ export default function AttendancePortal({ onOpenAdmin, qrToken }) {
                 className="input-dark"
                 required
               />
-            </div>
-
-            <div className="field-group">
-              <div className="field-label-row">
-                <label className="field-label">Biometric Verification</label>
-                <span className="live-badge">
-                  <span className="live-dot" />
-                  Live
-                </span>
-              </div>
-
-              <div className="webcam-frame">
-                <Webcam audio={false} ref={webcamRef} screenshotFormat="image/jpeg" />
-                <span className="scan-corner tl" />
-                <span className="scan-corner tr" />
-                <span className="scan-corner bl" />
-                <span className="scan-corner br" />
-              </div>
-              <p className="scan-caption">Align face within frame</p>
             </div>
 
             <button type="submit" disabled={!canSubmit} className="btn btn-primary btn-block btn-lg">
