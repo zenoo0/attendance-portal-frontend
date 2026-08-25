@@ -712,7 +712,7 @@ a { color: inherit; }
   .sidebar-nav { order: 2; flex-basis: 100%; margin-top: var(--space-2); }
 
   .topbar { flex-direction: column; align-items: stretch; }
-  .topbar .btn { width: 100%; }
+  .topbar .btn, .topbar input[type="date"] { width: 100%; }
 
   /* Filter bar — narrow phone par sab kuch stack + full-width */
   .filter-card { flex-direction: column; align-items: stretch; gap: var(--space-3); }
