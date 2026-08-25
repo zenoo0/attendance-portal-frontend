@@ -69,21 +69,28 @@ export default function AttendancePortal({ onOpenAdmin, qrToken }) {
       const imageBlob = dataURLtoBlob(imageSrc);
       const fileName = `${selectedCourse}/${cleanStudentId}_${Date.now()}.jpg`;
 
-      // 1. Storage Upload
-      const { error: uploadError } = await supabase.storage
-        .from('attendance-captures')
-        .upload(fileName, imageBlob, { contentType: 'image/jpeg' });
+      // 1. Storage Upload — storage full ho ya upload kisi bhi wajah se
+      // fail ho jaye, attendance abhi bhi mark honi chahiye (bina image
+      // ke), block nahi honi chahiye.
+      let imageUrl = null;
+      try {
+        const { error: uploadError } = await supabase.storage
+          .from('attendance-captures')
+          .upload(fileName, imageBlob, { contentType: 'image/jpeg' });
 
-      if (uploadError) throw new Error('Storage Upload Failed: ' + uploadError.message);
+        if (uploadError) throw uploadError;
 
-      // 2. Public URL
-      const { data: publicUrlData } = supabase.storage
-        .from('attendance-captures')
-        .getPublicUrl(fileName);
+        const { data: publicUrlData } = supabase.storage
+          .from('attendance-captures')
+          .getPublicUrl(fileName);
 
-      const imageUrl = publicUrlData.publicUrl;
+        imageUrl = publicUrlData.publicUrl;
+      } catch (uploadErr) {
+        console.warn('Image upload fail ho gaya, image ke bina attendance continue:', uploadErr);
+        imageUrl = null;
+      }
 
-      // 3. Backend Call
+      // 2. Backend Call
       const response = await fetch(`${BACKEND_URL}/api/v1/attendance`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -109,10 +116,14 @@ export default function AttendancePortal({ onOpenAdmin, qrToken }) {
 
       const resultData = await response.json().catch(() => ({}));
 
+      const notes = [];
+      if (resultData.warning) notes.push(resultData.warning);
+      if (!imageUrl) notes.push('Note: photo save nahi ho saki (storage issue), lekin attendance mark ho gayi.');
+
       setStatus({
         type: 'success',
-        message: resultData.warning
-          ? `Attendance marked successfully! ⚠ ${resultData.warning}`
+        message: notes.length
+          ? `Attendance marked successfully! ⚠ ${notes.join(' ')}`
           : 'Attendance marked successfully!',
       });
       setStudentId('');
