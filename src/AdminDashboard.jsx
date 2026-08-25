@@ -17,8 +17,6 @@ export default function AdminDashboard({ onLogout }) {
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
   const [markingRollNumber, setMarkingRollNumber] = useState(null);
-  const [exportingPhotos, setExportingPhotos] = useState(false);
-  const [photoReportDate, setPhotoReportDate] = useState(() => new Date().toISOString().slice(0, 10));
 
   // Registration Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -68,7 +66,6 @@ export default function AdminDashboard({ onLogout }) {
           id,
           student_id,
           student_name,
-          image_url,
           captured_at,
           course_id,
           courses ( code, name )
@@ -209,38 +206,6 @@ export default function AdminDashboard({ onLogout }) {
     }
   };
 
-  // Photo Report (PDF) — ek din ki attendance, har record ki photo ke
-  // sath. Course-filter respect karta hai (Excel export ki tarah nahi —
-  // wahan hamesha complete register banta hai, yahan photos ki wajah se
-  // pura data ek sath download karna impractical hoga).
-  const exportPhotoReport = async () => {
-    setExportingPhotos(true);
-    try {
-      const params = new URLSearchParams({ date: photoReportDate });
-      if (selectedCourse !== 'ALL') params.set('course_id', selectedCourse);
-
-      const response = await fetch(`${BACKEND_URL}/api/v1/export/attendance-photos?${params}`);
-      if (!response.ok) {
-        const errData = await response.json().catch(() => ({}));
-        throw new Error(errData.detail || 'Photo report export fail ho gaya.');
-      }
-
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `Attendance_Photo_Report_${photoReportDate}.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.URL.revokeObjectURL(url);
-    } catch (err) {
-      alert('Photo report export fail ho gaya: ' + err.message);
-    } finally {
-      setExportingPhotos(false);
-    }
-  };
-
   // Manual Attendance — admin seedha "Registered Students" list se ek
   // click me student ko present mark kar sakta hai (QR/photo nahi
   // chahiye). Realtime subscription (upar) khud Attendance Log tab
@@ -316,21 +281,9 @@ export default function AdminDashboard({ onLogout }) {
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', flexWrap: 'wrap' }}>
             {activeTab === 'attendance' && (
-              <>
-                <input
-                  type="date"
-                  value={photoReportDate}
-                  onChange={(e) => setPhotoReportDate(e.target.value)}
-                  className="input-light"
-                  style={{ width: 'auto' }}
-                />
-                <button onClick={exportPhotoReport} disabled={exportingPhotos} className="btn btn-outline-blue">
-                  {exportingPhotos ? '⏳ Generating...' : '🖼️ Photo Report (PDF)'}
-                </button>
-                <button onClick={exportToExcel} disabled={exporting} className="btn btn-outline-blue">
-                  {exporting ? '⏳ Generating...' : '📥 Export to Excel'}
-                </button>
-              </>
+              <button onClick={exportToExcel} disabled={exporting} className="btn btn-outline-blue">
+                {exporting ? '⏳ Generating...' : '📥 Export to Excel'}
+              </button>
             )}
             {activeTab === 'students' && (
               <button onClick={() => setIsModalOpen(true)} className="btn btn-primary">
@@ -392,7 +345,6 @@ export default function AdminDashboard({ onLogout }) {
                   <table className="data-table">
                     <thead>
                       <tr>
-                        <th>Image</th>
                         <th>Student ID</th>
                         <th>Name</th>
                         <th>Course</th>
@@ -405,13 +357,6 @@ export default function AdminDashboard({ onLogout }) {
                           const badge = getCourseBadge(item.courses?.name || item.courses?.code || '');
                           return (
                             <tr key={item.id}>
-                              <td>
-                                {item.image_url ? (
-                                  <img src={item.image_url} alt="Capture" className="avatar-thumb" />
-                                ) : (
-                                  <span className="no-img-chip">No Img</span>
-                                )}
-                              </td>
                               <td className="td-bold">{item.student_id}</td>
                               <td>{item.student_name}</td>
                               <td>
@@ -427,7 +372,7 @@ export default function AdminDashboard({ onLogout }) {
                         })
                       ) : (
                         <tr>
-                          <td colSpan="5" className="state-msg">No attendance logs found for this filter.</td>
+                          <td colSpan="4" className="state-msg">No attendance logs found for this filter.</td>
                         </tr>
                       )}
                     </tbody>
